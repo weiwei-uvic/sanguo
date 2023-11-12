@@ -1,29 +1,26 @@
-<!doctype html>
+<!DOCTYPE HTML>
+<!-- 
+  This example is used mainly for developers to test performance issues by controlling number of groups, 
+  number of items and their types.
+ -->
 <html>
+
 <head>
-  <title>Timeline</title>
-  <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <title>Timeline | other | onTimeout example</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
   <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
-  <style type="text/css">
-    #visualization {
-      width: 600px;
-      height: 400px;
-      border: 1px solid lightgray;
-    }
-  </style>
 </head>
+
 <body>
-<div id="visualization" style="position: relative;">
-<script type="text/javascript">
-  // DOM element where the Timeline will be attached
-  var container = document.getElementById('visualization');
+  <div id="visualization"></div>
+</body>
 
-
-  /*
-     Read timeline data from Json: sanguoJson.json
-     The attribute of json file:
-     Name_cn	ID  Last_Name	Zi	Name_en	Affiliation	Birth_year	Death_year	Lifespan	Father	Father_ID	Native_place	Jun	Xian	Note
-  */
+<script>
+  ENDOFHAN = moment("220"); // The end year of Han dynasty
+  ENDOFWEI = moment("266"); // The end year of Wei dynasty
+  ENDOFXIJIN = moment("316"); // The end year of west Jin dynasty
+  GAOPINGLING_INCIDENT = moment("249");
   fetch('sanguoListJson.json')
     .then(response => response.json())
     .then(data => {
@@ -33,24 +30,52 @@
          // id, content, start, end, title, style(optional)
          
          data.forEach(element => {
-          datalist.push({id: element[1], content: element[0], start: element[6], end: element[7], title: element[14] })
+          datalist.push({id: element[1], type: "range", content: element[0], start: moment(element[6]), end: moment(element[7]), style: 'height: 15px;', title: element[14] })
          });
            // TEST
-          console.log("####", datalist[0])
           var items = new vis.DataSet(datalist);
           // Configuration for the Timeline
           var options = {
-            width: '150%',
-            height: '100%',
-            //autoResize: false,
-            //timeAxis: {scale: 'year', step: 1},
-            verticalScroll: true
+            stack: true,
+            verticalScroll: true,
+            horizontalScroll: true,
+            zoomKey: 'ctrlKey',
+            margin: {
+              item: {
+                vertical: 5 // Adjust the vertical distance between bars (in pixels)
+                }
+              }
           };
 
           // Create a Timeline
+          var container = document.getElementById('visualization');
           var timeline = new vis.Timeline(container, items, options);
+          // Adjust the title size
+          var customStyles = document.createElement('style');
+          customStyles.innerHTML = '.vis-item-content {  top: -40%; transform: translateY(-80%); font-size: 10px; }'; // Set the desired font size
+          document.head.appendChild(customStyles);
+          // Add the mark year
+          timeline.addCustomTime(ENDOFHAN, 'HAN');
+          timeline.addCustomTime(ENDOFWEI, 'WEI');
+          timeline.addCustomTime(ENDOFXIJIN, 'JIN');
+          // Style the custom time line
+          var customTimeMarker = document.querySelector('HAN');
+          if (customTimeMarker) {
+            customTimeMarker.style.background = '#9f3073'; // Set the background color
+            customTimeMarker.style.width = '2px'; // Set the width of the line
+          }
     });
 
 </script>
-</body>
+
+
 </html>
+
+<!-- Function added on 11/11/23:
+  1. Be able to customize the height of bar and vertical distances between bars
+  2. Be able to control how to zoom the timeline: use mouse roller to scroll vertically, crtl+roller to zoom
+  3. Be able to add customized time (a vertical line in timeline) 
+
+  TODO:
+  Customize the style of timeline setting
+-->
