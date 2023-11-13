@@ -10,6 +10,65 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
   <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
   <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+  <style type="text/css">
+    body, input {
+      font: 12pt verdana;
+    }
+
+    /* custom styles for individual items, load this after vis-timeline-graph2d.min.css/vis-timeline-graph2d.min.css */
+
+    .vis-item.green {
+      background-color: greenyellow;
+      border-color: green;
+    }
+
+    /* create a custom sized dot at the bottom of the red item */
+    .vis-item.red {
+      background-color: red;
+      border-color: darkred;
+      color: white;
+      font-family: monospace;
+      box-shadow: 0 0 10px gray;
+    }
+    .vis-item.vis-dot.red {
+      border-radius: 5px;
+      border-width: 5px;
+    }
+    .vis-item.vis-line.red {
+      border-width: 5px;
+    }
+    .vis-item.vis-box.red {
+      border-radius: 0;
+      border-width: 2px;
+      font-size: 24pt;
+      font-weight: bold;
+    }
+
+    .vis-item.orange {
+      background-color: gold;
+      border-color: orange;
+    }
+    .vis-item.vis-selected.orange {
+      /* custom colors for selected orange items */
+      background-color: orange;
+      border-color: orangered;
+    }
+
+    .vis-item.magenta {
+      background-color: magenta;
+      border-color: purple;
+      color: white;
+    }
+
+    /* our custom classes overrule the styles for selected events,
+       so lets define a new style for the selected events */
+    .vis-item.vis-selected {
+      background-color: white;
+      border-color: black;
+      color: black;
+      box-shadow: 0 0 10px gray;
+    }
+  </style>
 </head>
 
 <body>
@@ -17,10 +76,27 @@
 </body>
 
 <script>
-  ENDOFHAN = moment("220"); // The end year of Han dynasty
-  ENDOFWEI = moment("266"); // The end year of Wei dynasty
-  ENDOFXIJIN = moment("316"); // The end year of west Jin dynasty
+  function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
+  }
+  Key_years_range = {"EastHan":[184, 220], "Wei":[220, 266], "Shu":[221, 263],"Wu":[222, 280], "Jin":[266, 316],"EastJin":[317, 420]}
+  Average_Life_Span = 57;
+  END_HAN = moment("220"); // The end year of Han dynasty
+  END_WEI = moment("266"); // The end year of Wei dynasty
+  END_XIJIN = moment("316"); // The end year of west Jin dynasty
+  END_DONGJIN = moment("420");
+  START_SHU = moment("221");
+  END_SHU = moment("263");
+  START_WU = moment("222");
+  END_WU = moment("280");
+  YELLOW_TURBAN_REBELLION = moment("184"); 
   GAOPINGLING_INCIDENT = moment("249");
+  BATTLE_REDCLIFFS = moment("208");
+  BATTLE_XIAOTING = moment("221");
+
+
   fetch('sanguoListJson.json')
     .then(response => response.json())
     .then(data => {
@@ -30,13 +106,45 @@
          // id, content, start, end, title, style(optional)
          
          data.forEach(element => {
-          datalist.push({id: element[1], type: "range", content: element[0], start: moment(element[6]), end: moment(element[7]), style: 'height: 15px;', title: element[14] })
-         });
+          birthYear = element[7];
+          deathYear = element[8];
+          start = "";
+          end = "";
+          theType = "range";
+          barColor = 'green';
+          if((birthYear== "" && deathYear== "" ))
+          {
+            era = element[6]; // the "affliation"
+            start = getRandomInt(Key_years_range[era][0], Key_years_range[era][1]).toString();
+            theType = "point";
+            datalist.push({id: element[1], type: theType, content: element[0], start: moment(start), title: element[15]})
+          }
+          else
+          {
+            if(birthYear!= "" && deathYear!= "" )
+            {
+              start = birthYear;
+              end = deathYear;
+            }
+            else if(birthYear!= "" )
+            {
+              start = birthYear;
+              end = (Number(birthYear) + Average_Life_Span).toString();
+              barColor = "magenta"
+            }
+            else if(deathYear!= "" )
+            {
+              start = (Number(deathYear) - Average_Life_Span).toString();
+              end = deathYear;
+              barColor = 'orange'
+            }
+            datalist.push({id: element[1], type: theType, content: element[0], start: moment(start), end: moment(end), style: 'height: 15px;', title: element[15], className: barColor })
+          }
+        });
            // TEST
           var items = new vis.DataSet(datalist);
           // Configuration for the Timeline
           var options = {
-            stack: true,
             verticalScroll: true,
             horizontalScroll: true,
             zoomKey: 'ctrlKey',
@@ -55,9 +163,9 @@
           customStyles.innerHTML = '.vis-item-content {  top: -40%; transform: translateY(-80%); font-size: 10px; }'; // Set the desired font size
           document.head.appendChild(customStyles);
           // Add the mark year
-          timeline.addCustomTime(ENDOFHAN, 'HAN');
-          timeline.addCustomTime(ENDOFWEI, 'WEI');
-          timeline.addCustomTime(ENDOFXIJIN, 'JIN');
+          timeline.addCustomTime(END_HAN, 'HAN');
+          timeline.addCustomTime(END_WEI, 'WEI');
+          timeline.addCustomTime(END_XIJIN, 'JIN');
           // Style the custom time line
           var customTimeMarker = document.querySelector('HAN');
           if (customTimeMarker) {
@@ -78,4 +186,13 @@
 
   TODO:
   Customize the style of timeline setting
+
+  Function added on 12/11/23:
+  1. All data are visible now.
+  2. It now has four formats: know both birth/death year, only know birth year, only know death year, know nothing.
+  3. Be able to customize size, color 
+
+  TODO:
+  Adjust the position of text for points
+  Add filters(points, timelines, etc)
 -->
