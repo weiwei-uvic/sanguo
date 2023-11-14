@@ -10,12 +10,42 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
   <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
   <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+  <script src="timeline.js"></script>
+  <script src="dashboard.js"></script>
   <style type="text/css">
     body, input {
       font: 12pt verdana;
     }
 
+    #dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f8f8f8;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+      
+        #visualization {
+            margin-top: 60px; /* Adjust based on the height of the dashboard */
+        }
+
     /* custom styles for individual items, load this after vis-timeline-graph2d.min.css/vis-timeline-graph2d.min.css */
+    .vis-item.vis-range{
+      height: 15px;
+    }
+
+    .vis-item.vis-point{
+      border-radius: 7px;
+    }
+
+    .vis-item-content { 
+      top: -40%; 
+      font-size: 10px; 
+    }
+
 
     .vis-item.green {
       background-color: greenyellow;
@@ -33,6 +63,7 @@
     .vis-item.vis-dot.red {
       border-radius: 5px;
       border-width: 5px;
+      color: black;
     }
     .vis-item.vis-line.red {
       border-width: 5px;
@@ -44,9 +75,9 @@
       font-weight: bold;
     }
 
-    .vis-item.orange {
-      background-color: gold;
-      border-color: orange;
+    .vis-item.certainlifespan {
+      background-color: #fec44f;
+      border-color: #662506;
     }
     .vis-item.vis-selected.orange {
       /* custom colors for selected orange items */
@@ -54,12 +85,17 @@
       border-color: orangered;
     }
 
-    .vis-item.magenta {
-      background-color: magenta;
-      border-color: purple;
-      color: white;
+    .vis-item.deathuncertain {
+      background: linear-gradient(to right, #999999, #ffffff);
+      border-color: #c0c0c0;
+      color: black;
     }
 
+    .vis-item.birthuncertain {
+      background: linear-gradient(to left, #999999, #ffffff);
+      border-color: #c0c0c0;
+      color: black;
+    }
     /* our custom classes overrule the styles for selected events,
        so lets define a new style for the selected events */
     .vis-item.vis-selected {
@@ -68,115 +104,42 @@
       color: black;
       box-shadow: 0 0 10px gray;
     }
+    
   </style>
 </head>
 
 <body>
+  <!-- Dashboard Section -->
+  <div id="dashboard">
+    <label for="knownLifespan">Show Individuals With Known Lifespan:</label>
+    <input type="radio" id="knownLifespan" data-clicked="false" value = "knownLifespan"  onclick="toggleRadioOnAndOff(this)">
+
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate">
+
+    <button onclick="filterTimeline()">Apply Filter</button>
+</div>
   <div id="visualization"></div>
 </body>
 
 <script>
-  function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
-  }
-  Key_years_range = {"EastHan":[184, 220], "Wei":[220, 266], "Shu":[221, 263],"Wu":[222, 280], "Jin":[266, 316],"EastJin":[317, 420]}
-  Average_Life_Span = 57;
-  END_HAN = moment("220"); // The end year of Han dynasty
-  END_WEI = moment("266"); // The end year of Wei dynasty
-  END_XIJIN = moment("316"); // The end year of west Jin dynasty
-  END_DONGJIN = moment("420");
-  START_SHU = moment("221");
-  END_SHU = moment("263");
-  START_WU = moment("222");
-  END_WU = moment("280");
-  YELLOW_TURBAN_REBELLION = moment("184"); 
-  GAOPINGLING_INCIDENT = moment("249");
-  BATTLE_REDCLIFFS = moment("208");
-  BATTLE_XIAOTING = moment("221");
 
-
-  fetch('sanguoListJson.json')
-    .then(response => response.json())
-    .then(data => {
-         var datalist = []
-         // Each individual is a dict, with keys (attributes) and corresponding value
-         // attributes of the data for timeline:
-         // id, content, start, end, title, style(optional)
-         
-         data.forEach(element => {
-          birthYear = element[7];
-          deathYear = element[8];
-          start = "";
-          end = "";
-          theType = "range";
-          barColor = 'green';
-          if((birthYear== "" && deathYear== "" ))
-          {
-            era = element[6]; // the "affliation"
-            start = getRandomInt(Key_years_range[era][0], Key_years_range[era][1]).toString();
-            theType = "point";
-            datalist.push({id: element[1], type: theType, content: element[0], start: moment(start), title: element[15]})
-          }
-          else
-          {
-            if(birthYear!= "" && deathYear!= "" )
-            {
-              start = birthYear;
-              end = deathYear;
-            }
-            else if(birthYear!= "" )
-            {
-              start = birthYear;
-              end = (Number(birthYear) + Average_Life_Span).toString();
-              barColor = "magenta"
-            }
-            else if(deathYear!= "" )
-            {
-              start = (Number(deathYear) - Average_Life_Span).toString();
-              end = deathYear;
-              barColor = 'orange'
-            }
-            datalist.push({id: element[1], type: theType, content: element[0], start: moment(start), end: moment(end), style: 'height: 15px;', title: element[15], className: barColor })
-          }
-        });
-           // TEST
-          var items = new vis.DataSet(datalist);
-          // Configuration for the Timeline
-          var options = {
-            verticalScroll: true,
-            horizontalScroll: true,
-            zoomKey: 'ctrlKey',
-            margin: {
-              item: {
-                vertical: 5 // Adjust the vertical distance between bars (in pixels)
-                }
-              }
-          };
-
-          // Create a Timeline
-          var container = document.getElementById('visualization');
-          var timeline = new vis.Timeline(container, items, options);
-          // Adjust the title size
-          var customStyles = document.createElement('style');
-          customStyles.innerHTML = '.vis-item-content {  top: -40%; transform: translateY(-80%); font-size: 10px; }'; // Set the desired font size
-          document.head.appendChild(customStyles);
-          // Add the mark year
-          timeline.addCustomTime(END_HAN, 'HAN');
-          timeline.addCustomTime(END_WEI, 'WEI');
-          timeline.addCustomTime(END_XIJIN, 'JIN');
-          // Style the custom time line
-          var customTimeMarker = document.querySelector('HAN');
-          if (customTimeMarker) {
-            customTimeMarker.style.background = '#9f3073'; // Set the background color
-            customTimeMarker.style.width = '2px'; // Set the width of the line
-          }
-    });
-
+    function toggleRadioOnAndOff(radioButton)
+    {
+        if (radioButton.getAttribute("data-clicked") == "true") {
+            radioButton.checked = false;
+            radioButton.setAttribute("data-clicked", "false");
+        } 
+        else {
+            radioButton.setAttribute("data-clicked", "true");
+            radioButton.checked = true;
+        }
+        if (radioButton.id == "knownLifespan")
+          updateTimelineData(radioButton.checked, "birthAndDeathData");
+    }
+    initializeTimelineData({birthData:true, deathData:true, birthAndDeathData:true, noneData:true});
+    generateTimeline();
 </script>
-
-
 </html>
 
 <!-- Function added on 11/11/23:
@@ -194,5 +157,14 @@
 
   TODO:
   Adjust the position of text for points
+  Add filters(points, timelines, etc)
+
+  Function added on 13/11/23:
+  0. Adjust the position of text for points
+  1. Assign different color/gradients to different types of timeline
+  2. Generate simulate lifespans (based on the assumption of normal distribution of lifespan) for individuals who don't have either birthyear or deathyear
+  3. Create two js file to separate html and js 
+
+  TODO:
   Add filters(points, timelines, etc)
 -->
