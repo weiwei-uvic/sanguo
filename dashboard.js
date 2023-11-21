@@ -1,7 +1,9 @@
 timelineDataFilters = {birthData:true, deathData:true, birthAndDeathData:true, noneData:true}
 
-function updateTimelineData(value, dataFilter)
+function updateTimelineData(value, dataType)
 {
-    timelineDataFilters[dataFilter] = value;
-    generateTimeline(timelineDataFilters);
+    if (value)
+        addGroups(dataType);
+    else
+        removeGroups(dataType);
 }

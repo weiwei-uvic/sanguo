@@ -1,0 +1,202 @@
+
+
+<head>
+  <title>Timeline | other | onTimeout example</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.css" />
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="timeline.js"></script>
+  <script src="familytree.js"></script>
+  <style type="text/css">
+    body, input {
+      font: 12pt verdana;
+    }
+
+    #dashboard {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #f8f8f8;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+      
+    #visualization {
+      margin-top: 60px; /* Adjust based on the height of the dashboard */
+    }
+
+    #familytree {
+      height: 1000px;
+      border: 1px solid lightgray;
+    }
+
+    /* custom styles for individual items, load this after vis-timeline-graph2d.min.css/vis-timeline-graph2d.min.css */
+    .vis-item.vis-range{
+      height: 15px;
+    }
+
+    .vis-item.vis-point{
+      border-radius: 7px;
+    }
+
+    .vis-item-content { 
+      top: -40%; 
+      font-size: 10px; 
+    }
+
+
+    .vis-item.green {
+      background-color: greenyellow;
+      border-color: green;
+    }
+
+    /* create a custom sized dot at the bottom of the red item */
+    .vis-item.red {
+      background-color: red;
+      border-color: darkred;
+      color: white;
+      font-family: monospace;
+      box-shadow: 0 0 10px gray;
+    }
+    .vis-item.vis-dot.red {
+      border-radius: 5px;
+      border-width: 5px;
+      color: black;
+    }
+    .vis-item.vis-line.red {
+      border-width: 5px;
+    }
+    .vis-item.vis-box.red {
+      border-radius: 0;
+      border-width: 2px;
+      font-size: 24pt;
+      font-weight: bold;
+    }
+
+    .vis-item.certainlifespan {
+      background-color: #fec44f;
+      border-color: #662506;
+    }
+    .vis-item.vis-selected.orange {
+      /* custom colors for selected orange items */
+      background-color: orange;
+      border-color: orangered;
+    }
+
+    .vis-item.deathuncertain {
+      background: linear-gradient(to right, #999999, #ffffff);
+      border-color: #c0c0c0;
+      color: black;
+    }
+
+    .vis-item.birthuncertain {
+      background: linear-gradient(to left, #999999, #ffffff);
+      border-color: #c0c0c0;
+      color: black;
+    }
+    /* our custom classes overrule the styles for selected events,
+       so lets define a new style for the selected events */
+    .vis-item.vis-selected {
+      background-color: white;
+      border-color: black;
+      color: black;
+      box-shadow: 0 0 10px gray;
+    }
+    
+  </style>
+</head>
+
+<body>
+  <!-- Dashboard Section -->
+  <div id="dashboard">
+    <b>Data with verified: </b>
+    
+    <input type="checkbox" id="knownLifespan" value = "knownLifespan" checked  onclick="toggleCheckboxOnAndOff(this)">
+    <label for="knownLifespan">Lifespan</label>
+    
+    <input type="checkbox" id="knownBirth" value = "knownBirth" checked  onclick="toggleCheckboxOnAndOff(this)">
+    <label for="knownBirth">Birth year</label>
+    
+    <input type="checkbox" id="knownDeath" value = "knownDeath" checked  onclick="toggleCheckboxOnAndOff(this)">
+    <label for="knownDeath">Death year</label>
+    
+    <input type="checkbox" id="none" value = "none" checked  onclick="toggleCheckboxOnAndOff(this)">
+    <label for="none">None (neither birth or death is known)</label>
+    
+    <!-- <label for="endDate">End Date:</label>
+    <input type="date" id="endDate"> -->
+
+    <!-- <button onclick="filterTimeline()">Apply Filter</button> -->
+</div>
+  <div id="visualization"></div>
+
+</div>
+<div id="familytree"></div>
+<script src="familytree.js"></script>
+</body>
+
+<script>
+
+    function toggleCheckboxOnAndOff(checkboxButton)
+    {
+      // if (checkboxButton.checked == true) {
+      //     checkboxButton.checked = false;
+      //     //checkboxButton.setAttribute("data-clicked", "false");
+      //   } 
+      // else {
+      //     //checkboxButton.setAttribute("data-clicked", "true");
+      //     checkboxButton.checked = true;
+      //   }
+      if (checkboxButton.id == "knownLifespan")
+          updateTimelineData(checkboxButton.checked, "birthAndDeathData");
+      if (checkboxButton.id == "knownBirth")
+          updateTimelineData(checkboxButton.checked, "birthData");
+      if (checkboxButton.id == "knownDeath")
+          updateTimelineData(checkboxButton.checked, "deathData");
+      if (checkboxButton.id == "none")
+          updateTimelineData(checkboxButton.checked, "noneData");
+
+    }
+    //generateTimeline();
+</script>
+</html>
+
+<!-- 
+  ##### Function added on 11/11/23: ##### 
+  1. Be able to customize the height of bar and vertical distances between bars
+  2. Be able to control how to zoom the timeline: use mouse roller to scroll vertically, crtl+roller to zoom
+  3. Be able to add customized time (a vertical line in timeline) 
+
+  TODO:
+  Customize the style of timeline setting
+
+  ##### Function added on 12/11/23: ##### 
+  1. All data are visible now.
+  2. It now has four formats: know both birth/death year, only know birth year, only know death year, know nothing.
+  3. Be able to customize size, color 
+
+  TODO:
+  Adjust the position of text for points
+  Add filters(points, timelines, etc)
+
+  ##### Function added on 13/11/23: ##### 
+  0. Adjust the position of text for points
+  1. Assign different color/gradients to different types of timeline
+  2. Generate simulate lifespans (based on the assumption of normal distribution of lifespan) for individuals who don't have either birthyear or deathyear
+  3. Create two js file to separate html and js 
+
+  TODO:
+  Add filters(points, timelines, etc)
+
+  ##### Function added on 14/11/23: #####
+  0. Add filters in dashboard
+
+  TODO:
+  Add updates for timeline for highlight, view details, compare, etc
+-->

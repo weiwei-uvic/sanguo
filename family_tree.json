@@ -1,0 +1,51 @@
+{
+        "value": "1629",
+        "children": [
+            {
+                "value": 4,
+                "children": [
+                    {
+                        "value": 5,
+                        "children": [
+                            {
+                                "value": 6,
+                                "children": []
+                            },
+                            {
+                                "value": 641,
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "value": 41,
+                        "children": []
+                    },
+                    {
+                        "value": 156,
+                        "children": []
+                    },
+                    {
+                        "value": 221,
+                        "children": []
+                    },
+                    {
+                        "value": 489,
+                        "children": []
+                    },
+                    {
+                        "value": 813,
+                        "children": []
+                    },
+                    {
+                        "value": 925,
+                        "children": []
+                    },
+                    {
+                        "value": 1631,
+                        "children": []
+                    }
+                ]
+            }
+        ]
+    }
