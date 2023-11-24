@@ -3,6 +3,10 @@ const DATA_TYPE1 = "birthAndDeath";
 const DATA_TYPE2 = "birthOnly";
 const DATA_TYPE3 = "deathOnly";
 const DATA_TYPE4 = "noBirthOrDeath";
+const TEXT_COLOR = "#000";
+const BAR_LIGHT_COLOR = "#fff7fb";
+const BAR_SOLID_COLOR = "#807dba";
+const HIGHTLIGHT_COLOR = "#e31a1c";
 
 var barFillColors = {};
 
@@ -12,15 +16,19 @@ var YScale;
 var FamilytreeRoots = {};
 var AllData;
 var Filters = [];
+var PointsDdata; // the data that doesn't have birth and death year info
+var Width; // the width of the main svg
+
 
 function Timeline(data, familytreeDicts) {
     console.log("###### Timeline is called", Filters);
-    AllData = data;
 
+    AllData = data;
     FamilytreeRoots = familytreeDicts;
+    PointsDdata =  AllData.filter(d => d.Type == DATA_TYPE4);
     // Chart dimensions and configuration
     const margin = ({ top: 10, right: 20, bottom: 50, left: 20 }); // Increase bottom margin
-    const width = 1000;
+    const Width = window.innerWidth;
   
     const timelineData = AllData.filter(d => !Filters.includes(d.Type) && d.Type != DATA_TYPE4);
 
@@ -28,7 +36,7 @@ function Timeline(data, familytreeDicts) {
     const maxYear = Math.max(...timelineData.map(d => d.Death_year)) + 20;
     const minYear = Math.min(...timelineData.map(d => d.Birth_year)) - 20;
     // Compute the y position for each bar
-    const yPos = computeBarYPosition(timelineData, "center");
+    const yPos = computeBarYPosition(timelineData, "bottom");
   
     // Calculate the maximum yPos value and the height of the chart
     const yPosMax = yPos[Object.keys(yPos).reduce((a, b) => yPos[a] > yPos[b] ? a : b)];
@@ -38,7 +46,7 @@ function Timeline(data, familytreeDicts) {
     const height = ChartHeight + margin.top + margin.bottom;
 
     // Create X and Y scales
-    XScale = d3.scaleLinear().domain([minYear, maxYear]).range([margin.left, width - margin.right]);
+    XScale = d3.scaleLinear().domain([minYear, maxYear]).range([margin.left, Width - margin.right]);
     YScale = d3.scalePoint().domain(d3.range(yPosMin, yPosMax + 1)).range([height - margin.bottom, margin.top]).padding(1.5);
     
 
@@ -47,12 +55,12 @@ function Timeline(data, familytreeDicts) {
     d3.select("#axis-container").selectAll('svg').remove();
     const svg = d3.select("#chart-container")//(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
     .append("svg")
-    .attr("width", width)
+    .attr("width", Width)
     .attr("height", height)
     .style('bottom', '0')
     // Bar fill color
     createGradient(svg);
-    barFillColors = {birthAndDeath: "black", birthOnly:"url(#birthGradient)",deathOnly:"url(#deathGradient)"};
+    barFillColors = {birthAndDeath: BAR_SOLID_COLOR, birthOnly:"url(#birthGradient)",deathOnly:"url(#deathGradient)"};
 
     // Create the tooltip container.
     const tooltip = svg.append("g");
@@ -75,17 +83,15 @@ function Timeline(data, familytreeDicts) {
       .tickSizeOuter(0));
     // Create bars and labels
     const bars = svg.append("g")
-      .attr("id", "timelines")
+      .attr("class", "timelines")
       .selectAll("g")
       .data(timelineData)
       .join("g");
 
     createBars(bars, yPos);
-    addEvents(axis, svg, bars, timelineData, tooltip, yPos);
-    createDots(svg, yPosMin, yPosMax);
-    
-    // Add text to points
-
+    addEvents(axis, svg, bars, tooltip, yPos);
+    if (!Filters.includes(DATA_TYPE4))
+      createDots(svg, yPosMin, yPosMax, tooltip);
     // add pan and zoom, disabled here
 
     /* const zoom = d3.zoom()
@@ -104,18 +110,18 @@ function createBars(bars, yPos){
     .attr("id", d => d.ID) 
     .attr("x", d => XScale(d.Birth_year))
     .attr("width", d => XScale(d.Death_year) - XScale(d.Birth_year))
-    .attr("y", (d, i) => YScale(yPos[d.ID]))
+    .attr("y", d => YScale(yPos[d.ID]))
     .attr("height", BAR_HEIGHT)
     .attr("fill", d => barFillColors[d.Type]);
 
   // Create labels displaying only name
   bars.append("text")
     .text(d => d.Name_cn)
-    .attr("x", d => XScale(d.Birth_year) + 4)
-    .attr("y", (d, i) => YScale(yPos[d.ID]) + BAR_HEIGHT / 2)
+    .attr("x", d => XScale(d.Birth_year) + (XScale(d.Death_year) - XScale(d.Birth_year))/2)
+    .attr("y", d => YScale(yPos[d.ID]) + BAR_HEIGHT / 2)
     .attr("alignment-baseline", "central")
     .attr("font-size", 1.2*BAR_HEIGHT)
-    .attr("fill", "white")
+    .attr("fill", TEXT_COLOR)
     .attr("white-space", "nowrap")
     // .attr("overflow", "hidden")
     .attr("text-overflow", "ellipsis");
@@ -126,14 +132,14 @@ function createBars(bars, yPos){
     --- Three events included: mouseover, mouseout, click
 */
 
-function addEvents(axisSvg, svg, bars, timelineData, tooltip, yPos){
+function addEvents(axisSvg, svg, bars, tooltip, yPos){
   // Mouseover and mouseout events for scrolling labels and showing dates on the timeline
   bars.on("mouseover", function (event, d) { 
-    
-
     const bar = d3.select(this).select("rect");
-    bar.attr("stroke", "white")
+    bar.attr("fill", barFillColors[d.Type]);
+    bar.attr("stroke", HIGHTLIGHT_COLOR)
      .attr("stroke-width", 2);
+
     tooltip.style("display", null);
     tooltip.attr("transform", `translate(${XScale(d.Birth_year)}, ${YScale(yPos[d.ID]) + BAR_HEIGHT})`);
 
@@ -165,19 +171,22 @@ function addEvents(axisSvg, svg, bars, timelineData, tooltip, yPos){
     const textGroup = axisSvg.append("g")
       .attr("class", "timeline-hover");  
 
+
     lineGroup.append("line")
       .attr("x1", XScale(d.Birth_year))
       .attr("x2", XScale(d.Birth_year))
-      .attr("y1", YScale(yPos[d.ID]) + BAR_HEIGHT) // Start from the bottom of the bar
+      .attr("y1", YScale(yPos[d.ID]) + BAR_HEIGHT) // Start from the top of the bar
       .attr("y2", 0)
-      .style("stroke", "rgba(225,0,0,0.3)");
+      .attr('stroke-dasharray', d.Type === DATA_TYPE3 ? '5,5' : 'none')
+      .style("stroke", "red");
 
     lineGroup.append("line")
       .attr("x1", XScale(d.Death_year))
       .attr("x2", XScale(d.Death_year))
-      .attr("y1", YScale(yPos[d.ID]) + BAR_HEIGHT) // Start from the bottom of the bar
+      .attr("y1", YScale(yPos[d.ID]) + BAR_HEIGHT) // Start from the top of the bar
       .attr("y2", 0)
-      .style("stroke", "rgba(225,0,0,0.3)");
+      .attr('stroke-dasharray', d.Type === DATA_TYPE2 ? '5,5' : 'none')
+      .style("stroke", "red");
 
     textGroup.append("text")
       .text(d.Birth_year)
@@ -201,10 +210,8 @@ function addEvents(axisSvg, svg, bars, timelineData, tooltip, yPos){
       axisSvg.selectAll(".timeline-hover").remove();
 
       const bar = d3.select(this).select("rect");
-      const name = d3.select(this).select("text");
       // Set the bar color back to the original 
-      bar.attr("fill", barFillColors[d.Type]);
-      name.attr("fill", "white");
+      //name.attr("fill", "white");
       // Remove stroke
       bar.attr("stroke", null); // or rect.attr("stroke", "");
 
@@ -219,40 +226,116 @@ function addEvents(axisSvg, svg, bars, timelineData, tooltip, yPos){
     const name = d3.select(this).select("text");
 
     // --- highlight selected bars
-    bar.attr("fill", "#969696");
-    name.attr("fill", "#black");
+    bar.attr("fill", HIGHTLIGHT_COLOR);
+    name.attr("fill", TEXT_COLOR);
     // bar.style("opacity", 0);
 
     
     // bar.attr("stroke", "blue")
     // .attr("stroke-width", 2);
     if (FamilytreeRoots.hasOwnProperty(d.ID))
-    {    
-        root = FamilytreeRoots[d.ID];
-
-        var highlightPos = [parseFloat(bar.attr("x")) + parseFloat(bar.attr("width"))/2, parseFloat(bar.attr("y")) + parseFloat(bar.attr("height"))/2];
-        Familytree(svg, AllData, root, d.ID, highlightPos);
+    {  
+      //Make timeline uninteractionable  
+      svg.selectAll(".timelines")
+      .style('pointer-events', 'none');
+      root = FamilytreeRoots[d.ID];
+      var highlightPos = [parseFloat(bar.attr("x")) + parseFloat(bar.attr("width"))/2, parseFloat(bar.attr("y")) + parseFloat(bar.attr("height"))/2];
+      Familytree(svg, AllData, root, d.ID, highlightPos);
     }
   })
 }
 
 
-function createDots(svg, yPosMin, yPosMax){
+function createDots(svg, yPosMin, yPosMax, tooltip){
     // Create dots for individuals whose birth*death year are unknown
-    if (!Filters.includes(DATA_TYPE4))
-    {    
-      const points = svg.append("g")
-      .selectAll("g")
-      .data(AllData.filter(d => d.Type === "noBirthOrDeath"))
-      .join("g");
+    const points = svg.append("g")
+    .attr("class", "timelines")
+    .selectAll("g")
+    .data(PointsDdata)
+    .join("g");
+
+    var randomYpos = [];
+    for(i =0, s = PointsDdata.length; i< s; i++)
+    randomYpos.push(getRandomInt(yPosMin, yPosMax));
+    points.append("circle")
+      .attr("id", d => d.ID) 
+      .attr("cx", d => XScale(d.Live_year))
+      .attr("cy", (d,i) => YScale(randomYpos[i]))
+      .attr("r", 10)
+      .attr("opacity", 0.4)
+      .attr("fill", "grey");
+
+    points.on("mouseover", function (event, d) {
+      const point = d3.select(this).select("circle"); 
       
-      points.append("circle")
-        .attr("id", d => d.ID) 
-        .attr("cx", d => XScale(d.Live_year))
-        .attr("cy", d => YScale(getRandomInt(yPosMin, yPosMax)))
-        .attr("r", 5)
-        .attr("fill", "grey");
-    }
+      const cx = point.attr("cx");
+      const cy = point.attr("cy");
+
+
+      point.attr("fill", "grey")
+      .attr("opacity", 0.4); 
+
+      point.attr("stroke", HIGHTLIGHT_COLOR)
+      .attr("stroke-width", 2);
+      tooltip.style("display", null);
+      tooltip.attr("transform", `translate(${cx}, ${cy})`);
+
+      const path = tooltip.selectAll("path")
+        .data([,])
+        .join("path")
+          .attr("fill", "white")
+          .attr("stroke", "black");
+      const text = tooltip.selectAll("text")
+      .data([,])  // Assuming lines are separated by '。'
+      .join("text")
+      .call(text => text
+          .selectAll("tspan")
+          .data((d.Name_cn+', 字'+ d.Zi +'。'+d.Note).split('。'))
+          .join("tspan")
+        .attr("x", 0)
+        .attr("y", (_, i) => `${i * 1.1}em`)
+        .attr("font-weight", (_, i) => i ? null : "bold")
+        .text(d => d)
+      );
+      
+      const {x, y, width: w, height: h} = text.node().getBBox();
+      text.attr("transform", `translate(${-w / 2},${15 - y})`);
+      path.attr("d", `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`);
+      tooltip.node().parentNode.appendChild(tooltip.node());
+      // const textGroupPoints = svg.append("g")
+      // .attr("class", "timeline-hover");  
+      // textGroupPoints.append("text")
+      // .text(d.Name_cn)
+      // .attr("x", point.attr("cx"))
+      // .attr("y", point.attr("cy")-5)
+      // .attr("text-anchor", "middle")
+      // .attr("fill", "red"); 
+    })
+
+    .on("mouseout", function (event, d) {
+      const point = d3.select(this).select("circle"); 
+      point.attr("stroke", "null")
+      // Hide tip
+      tooltip.style("display", "none");
+      svg.selectAll(".timeline-hover").remove();
+    })
+
+    .on("click", function (event, d) {
+  
+      const point = d3.select(this).select("circle");
+  
+      // --- highlight selected bars
+      point.attr("fill", HIGHTLIGHT_COLOR);
+      if (FamilytreeRoots.hasOwnProperty(d.ID))
+      {  
+        //Make timeline uninteractionable  
+        svg.selectAll(".timelines")
+        .style('pointer-events', 'none');
+        root = FamilytreeRoots[d.ID];
+        var highlightPos = [parseFloat(point.attr("cx")), parseFloat(point.attr("cy"))];
+        Familytree(svg, AllData, root, d.ID, highlightPos);
+      }
+    })
 }
 
 function computeBarYPosition(data, direction = "center") {
@@ -314,55 +397,35 @@ function createBG(svg, XScale, margin){
     const bg = svg.append("g").attr("id", "background");//background
     // Draw vertical gridlines at every dynasty mark
     const linesLayer = svg.append("g").attr("class", "lines-layer");
-
+    // the container of background
+    bg.append("rect")
+      .attr("x", XScale(0))
+      .attr("width", XScale(460))
+      .attr("y", 0)
+      .attr("height", ChartHeight)
+      .attr("fill", "white");
       // Dynasty key years
     const dynastyKeyPoint = [25,220, 266, 316,420];
-    const WuDuration = [229,280];
-    const ShuDuration = [221,263];
-    const hanBGColor = "#e7e1ef";
-    const weiBGColor = "#fde0dd";
-    const westJinBGColor = "#f7fcb9";
-    const eastJinBGColor = "#edf8b1";
-      bg.append("rect")
-      .attr("x", XScale(dynastyKeyPoint[0]))
-      .attr("width", XScale(dynastyKeyPoint[1])-XScale(dynastyKeyPoint[0]))
-      .attr("y", 0)
-      .attr("height", ChartHeight)
-      .attr("fill", hanBGColor);
-    bg.append("rect")
-      .attr("x", XScale(dynastyKeyPoint[1]))
-      .attr("width", XScale(dynastyKeyPoint[2])-XScale(dynastyKeyPoint[1]))
-      .attr("y", 0)
-      .attr("height", ChartHeight)
-      .attr("fill", weiBGColor);
-    bg.append("rect")
-      .attr("x", XScale(dynastyKeyPoint[2]))
-      .attr("width", XScale(dynastyKeyPoint[3])-XScale(dynastyKeyPoint[2]))
-      .attr("y", 0)
-      .attr("height", ChartHeight)
-      .attr("fill", westJinBGColor);
-      bg.append("rect")
-      .attr("x", XScale(dynastyKeyPoint[3]))
-      .attr("width", XScale(dynastyKeyPoint[4])-XScale(dynastyKeyPoint[3]))
-      .attr("y", 0)
-      .attr("height", ChartHeight)
-      .attr("fill", eastJinBGColor);
-  
+    // const WuDuration = [229,280];
+    // const ShuDuration = [221,263];
+    // const hanBGColor = "#e7e1ef";
+    // const weiBGColor = "#fde0dd";
+    // const westJinBGColor = "#f7fcb9";
+    // const eastJinBGColor = "#edf8b1";
       linesLayer.append("g")
       .selectAll("line")
       .data(dynastyKeyPoint)
       .join("line")
         .attr("x1", d => XScale(d))
         .attr("x2", d => XScale(d))
-        .attr("y1", margin.bottom)
+        .attr("y1", 0)
         .attr("y2", ChartHeight)
-        .style("stroke", "rgba(0,0,1,1)");
+        .style("stroke", TEXT_COLOR);
+    svg.select("#background").on('click', function (event, d){resetTimeline(svg);});
 }
 
 function createGradient(svg)
 {
-        // Create the chart
-
     const birthGradient = svg.append("defs")
     .append("linearGradient")
     .attr("id", "birthGradient")
@@ -373,11 +436,11 @@ function createGradient(svg)
 
     birthGradient.append("stop")
         .attr("offset", "0%")
-        .style("stop-color", "#e5f5f9");
+        .style("stop-color", BAR_SOLID_COLOR);
 
     birthGradient.append("stop")
         .attr("offset", "100%")
-        .style("stop-color", "#00441b");
+        .style("stop-color", "#fff7fb");
 
     const deathGradient = svg.append("defs")
     .append("linearGradient")
@@ -389,11 +452,11 @@ function createGradient(svg)
 
     deathGradient.append("stop")
         .attr("offset", "0%")
-        .style("stop-color", "#00441b");
+        .style("stop-color", "#fff7fb");
 
         deathGradient.append("stop")
         .attr("offset", "100%")
-        .style("stop-color", "#e5f5f9");
+        .style("stop-color", BAR_SOLID_COLOR);
 }
 
 function generateNormalDistribution(mean, stdDev, numPoints) {
@@ -422,7 +485,6 @@ function getRandomInt(min, max) {
 
 function updateTimelineData(value, dataType)
 {
-  console.log("##### updateTimelineData is called")
     // update timeline data by updating the Filters list
     if (value)
       Filters = Filters.filter(item => item !== dataType);
@@ -435,8 +497,6 @@ function updateTimelineData(value, dataType)
 
 function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
 {
-    
-
     var Treedx = 40;
     var Treedy = 100;
   //  root.dy = width / (root.height+1);
@@ -448,11 +508,9 @@ function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
         if (d.data.value == highlightPID) {highlightPx = d.x; highlightPy = d.y;}
     });
 
-
-
     // const svg =  d3.select("#familytree-chart").attr("width", 500).attr("height", 500);
     svg.selectAll("#familytree").remove();
-    svg.selectAll("#timelines").attr("opacity", 0.2);
+    svg.selectAll(".timelines").attr("opacity", 0.2);
     svg.selectAll("#background").attr("opacity", 0.2);
     const g = svg.append("g")
         .attr("id", "familytree") 
@@ -506,38 +564,72 @@ function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
     // };
 
     nodes.append("circle")
-        .attr("fill", d => d.data.value == highlightPID? "#fc4e2a" : "#black")
+        .attr("fill", d => d.data.value == highlightPID? "#fc4e2a" : TEXT_COLOR)
         .attr("r", 4)
+        .attr("class", "node");
     
     nodes.append("text")
         .attr("dy", "0.61em")
-        .attr("fill",  d => d.data.value == highlightPID? "#fc4e2a" : "#black")
+        .attr("fill",  d => d.data.value == highlightPID? "#fc4e2a" : TEXT_COLOR)
         .attr("x", d => d.children ? -6 : 6)
         .attr("text-anchor", d => d.children ? "end" : "start")
         .text(d => IndividualData[d.data.value-1]["Name_cn"])
         .clone(true).lower();
 
-    nodes.on("click", function (event, d) {
-      const nodeID =  d.data.value;
-      svg.selectAll("#familytree").remove();
-      svg.selectAll("#timelines").attr("opacity", 1);
-      svg.selectAll("#background").attr("opacity", 1);
-
-      const bar = svg.selectAll("#timelines").select("rect[id='" + nodeID + "']"); // need add points operation
-      bar.attr("fill", "red");
-      const x = bar.attr("x");
-      const y = bar.attr("y");
-      console.log("#####x,y", bar.attr("x"), bar.attr("y"));
-      svg.transition().duration(750).call(
-        d3.zoom().transform,
-        d3.zoomIdentity.translate(x, y).scale(1)
-      );
+    nodes.on('click', function (event, d) {
+        const nodeID =  d.data.value;
+        const individual = svg.selectAll(".timelines").select("[id='" + nodeID + "']"); // need add points operation
+        individual.attr("stroke", HIGHTLIGHT_COLOR).attr("stroke-width", 2);
+        var ypos = individual.attr("y")||individual.attr("cy");
+        
+        window.scrollTo(0,  ypos - window.innerHeight/2);
+        resetTimeline(svg);
     });
+    // nodes.on("click", function (event, d) {
+    //   svg.selectAll(".timelines")
+    //   .style('pointer-events', 'auto');
+    //   svg.selectAll("#familytree").remove()
+      
+    //   const nodeID =  d.data.value;
+    //   const individual = svg.selectAll(".timelines").select("[id='" + nodeID + "']"); // need add points operation
+    //   individual.attr("stroke", HIGHTLIGHT_COLOR)
+    //   .attr("stroke-width", 2);
+    //   console.log("individual", individual);
+    //   var ypos = individual.attr("y")||individual.attr("cy");
+      
+    //   svg.transition().duration(500)
+    //     .selectAll("g").attr("opacity", 1);
+      
+    //   window.scrollTo(0,  ypos - window.innerHeight/2);
+    // });
 }
 
-
+// --- the function is not called since the pan and zoom effect need to be improved
 function scrollToBottom() {
   const svgElement = document.querySelector('svg');
   const height = svgElement.getBoundingClientRect().height;
   window.scrollTo(0, height);
+}
+
+function resetTimeline(svg) {
+  svg.selectAll(".timelines")
+      .style('pointer-events', 'auto');
+  svg.selectAll("#familytree").remove();
+  svg.transition().duration(500)
+    .selectAll("g").attr("opacity", 1);
+}
+
+function searchIndividual(input){
+  
+  results = AllData.filter((d => d.Name_cn.includes(input) ||d.Name_en.includes(input)));
+  svg = d3.select("#chart-container");
+  var ypos;
+  results.forEach(function(value,i)
+  {
+    const individual = svg.selectAll(".timelines").select("[id='" + value.ID + "']"); // need add points operation
+    individual.attr("stroke", HIGHTLIGHT_COLOR).attr("stroke-width", 2);
+    ypos = individual.attr("y")||individual.attr("cy");
+  });
+  window.scrollTo(0,  ypos - window.innerHeight/2);
+  resetTimeline(svg);
 }
