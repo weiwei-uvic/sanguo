@@ -11,6 +11,7 @@ const DATA_TYPE4 = "noBirthOrDeath";
 const TEXT_COLOR = "#000";
 const BAR_LIGHT_COLOR = "#fff7fb";
 const BAR_SOLID_COLOR = "#4292c6";
+const BAR_SOLID_COLOR_F = "#807dba";
 const HIGHTLIGHT_COLOR = "#e31a1c";
 const DOT_SOLID_COLOR = "#808080"; // grey
 const DOT_OPACITY = 0.5; // Set the opacity of dots to translucent
@@ -27,9 +28,13 @@ var AllData;
 /* Filters determine which type of individuals will be hiden. 
 * Default not showing individuals without known birth nor death info
 */
-var Filters = [DATA_TYPE4];  
+
+var ShownIndividualNum = 1722; // --- The totoal number of individuals shown on screen
 var PointsDdata; // the data that doesn't have birth and death year info
 var Width; // the width of the main svg
+
+var TypeFilter = [];
+var GenderFilter = [];
 
 var HighlightIDs = []; // --- Stores all individual ids that highlighted. Id will be added when individuals are clicked, and removed when BG is clicked
 
@@ -38,12 +43,12 @@ function Timeline(data, familytreeDicts) {
 
   AllData = data;
   FamilytreeRoots = familytreeDicts;
+
+  // --- Filter data by type, gender
   PointsDdata =  AllData.filter(d => d.Type == DATA_TYPE4);
-  
+  const timelineData = AllData.filter(d => d.Type != DATA_TYPE4);
+
   const Width = window.innerWidth;
-
-  const timelineData = AllData.filter(d => !Filters.includes(d.Type) && d.Type != DATA_TYPE4);
-
   // Calculate max of the death year and min of the birth year
   const maxYear = Math.max(...timelineData.map(d => d.Death_year)) + 20;
   const minYear = Math.min(...timelineData.map(d => d.Birth_year)) - 20;
@@ -76,22 +81,24 @@ function Timeline(data, familytreeDicts) {
 
   // Create the tooltip container.
   const tooltip = svg.append("g");
-  createBG(svg, XScale);
+  
 
   // Draw x-axis with labels every 20 years, the x-axis is on an independent svg
   //const xAxisSvg = d3.create("svg");
   const axis = d3.select("#axis-container")
   .append("svg")
   .attr("width", "100%")
-  .attr("height", 20)
+  .attr("height", 30)
   .attr("transform", `translate(0,0)`);
 
   axis.append("g")
-  .attr("transform", `translate(0,20)`)
+  .attr("transform", `translate(0,30)`)
   .call(d3.axisTop(XScale)
     .tickValues(d3.range(Math.floor(minYear / 20) * 20, maxYear, 20))
     .tickFormat(d3.format(".0f")) // Add this line to change the tick format
     .tickSizeOuter(0));
+
+  createBG(svg, XScale);
   // Create bars and labels
   const bars = svg.append("g")
     .attr("class", "timelines")
@@ -101,8 +108,8 @@ function Timeline(data, familytreeDicts) {
 
   createBars(bars, yPos);
   addEvents(axis, svg, bars, tooltip, yPos);
-  if (!Filters.includes(DATA_TYPE4))
-    createDots(svg, yPosMin, yPosMax, tooltip);
+  //if (!Filters.includes(DATA_TYPE4))
+  createDots(svg, yPosMin, yPosMax, tooltip);
   // add pan and zoom, disabled here
 
   /* const zoom = d3.zoom()
@@ -118,12 +125,15 @@ function Timeline(data, familytreeDicts) {
 
 function createBars(bars, yPos){
     bars.append("rect")
-    .attr("id", d => d.ID) 
+    .attr("id", d => d.ID)
+    .attr("y", 50) // Initial y-coordinate (adjust as needed)
+    .attr("fill", d => barFillColors[d.Type])
+    .transition()
+    .duration(3000)  
     .attr("x", d => XScale(d.Birth_year))
     .attr("width", d => XScale(d.Death_year) - XScale(d.Birth_year))
     .attr("y", d => YScale(yPos[d.ID]))
-    .attr("height", BAR_HEIGHT)
-    .attr("fill", d => barFillColors[d.Type]);
+    .attr("height", BAR_HEIGHT);
 
   // Create labels displaying only name
   bars.append("text")
@@ -202,14 +212,14 @@ function addEvents(axisSvg, svg, bars, tooltip, yPos){
     textGroup.append("text")
       .text(d.Birth_year)
       .attr("x", XScale(d.Birth_year))
-      .attr("y", 0 + 20)
+      .attr("y", 11)
       .attr("text-anchor", "middle")
       .attr("fill", "red"); // Display birth date in red
 
     textGroup.append("text")
       .text(d.Death_year)
       .attr("x", XScale(d.Death_year))
-      .attr("y", 0 + 20)
+      .attr("y", 11)
       .attr("text-anchor", "middle")
       .attr("fill", "red"); // Display death date in red
 
@@ -277,7 +287,7 @@ function createDots(svg, yPosMin, yPosMax, tooltip){
       .attr("fill-opacity", DOT_OPACITY)
       .attr("fill", DOT_SOLID_COLOR)
       .transition()
-      .duration(5000) 
+      .duration(3000) 
       .attr("cx", d => XScale(d.Live_year))
       .attr("cy", (d,i) => YScale(randomYpos[i]))
       .attr("r", DOT_RADIUS)
@@ -503,16 +513,45 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
 }
 
-function updateTimelineData(value, dataType)
-{
-    // update timeline data by updating the Filters list
-    if (value)
-        Filters = Filters.filter(item => item !== dataType);
-    else
-        Filters.push(dataType);
+function handleFilter(){
 
-    // update timeline
-    Timeline(AllData, FamilytreeRoots)
+}
+
+function updateTimeline(value, filter)
+{
+    if(filter === "F" ||filter === "M" )
+      if(!value)
+        GenderFilter.push(filter);
+      else
+        GenderFilter.splice(GenderFilter.indexOf(filter),1);
+    else
+      if(!value)
+        TypeFilter.push(filter);
+      else
+        TypeFilter.splice(TypeFilter.indexOf(filter),1);
+
+    d3.selectAll(".timelines").selectAll("*").filter(d => GenderFilter.includes(d.Gender) || TypeFilter.includes(d.Type))
+      .selectAll("*")
+      .style("visibility", "hidden")
+      .style('pointer-events', "none");
+
+    d3.selectAll(".timelines").selectAll("*").filter(d => !GenderFilter.includes(d.Gender) && !TypeFilter.includes(d.Type))
+      .selectAll("*")
+      .style("visibility", "visible")
+      .style('pointer-events', "auto");
+
+    var count =0;
+    d3.selectAll(".timelines").selectAll("rect").filter(function () {
+      count += d3.select(this).style("visibility") === "visible"? 1:0;
+        return false;
+    });
+    d3.selectAll(".timelines").selectAll("circle").filter(function () {
+      count += d3.select(this).style("visibility") === "visible"? 1:0;
+        return false;
+    });
+    
+    document.getElementById("num_Shown").innerHTML = '' + count;
+    
 }
 
 function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
@@ -571,11 +610,8 @@ function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
 
     nodes.on('click', function (event, d) {
         resetTimeline(svg);
-        const nodeID =  d.data.value;
-        const individual = svg.selectAll(".timelines").select("[id='" + nodeID + "']"); // need add points operation
-        individual.attr("stroke", HIGHTLIGHT_COLOR).attr("stroke-width", 2);
-        var ypos = individual.attr("y")||individual.attr("cy");
-        
+        const individual = svg.selectAll(".timelines").select("[id='" + d.data.value + "']"); // need add points operation
+        var ypos = locateIndividual(individual);
         window.scrollTo(0,  ypos - window.innerHeight/2);
     });
     // nodes.on("click", function (event, d) {
@@ -614,7 +650,7 @@ function resetTimeline(svg) {
       {
         highlightItem= svg.selectAll(".timelines").select("[id='" + ID + "']");
         if (AllData[ID-1].Type != DATA_TYPE4)
-            highlightItem.attr("fill", BAR_SOLID_COLOR);
+            highlightItem.attr("fill", barFillColors[AllData[ID-1].Type]);
         else
             highlightItem.attr("fill", DOT_SOLID_COLOR).attr("fill-opacity", DOT_OPACITY);
       
@@ -627,18 +663,29 @@ function resetTimeline(svg) {
  * @param {The text input for searching} input 
  */
 function searchIndividual(input){
-  
     results = AllData.filter((d => d.Name_cn.includes(input) ||d.Name_en.includes(input)));
-    svg = d3.select("#chart-container");
-    var ypos;
-    resetTimeline(svg);
-    
-    results.forEach(function(value)
+    if (results.length === 0)
+        showNotice(1);
+    else
     {
-      const individual = svg.selectAll(".timelines").select("[id='" + value.ID + "']"); // need add points operation
-      individual.attr("stroke", HIGHTLIGHT_COLOR).attr("stroke-width", 2);
-      ypos = individual.attr("y")||individual.attr("cy");
-    });
-    window.scrollTo(0,  ypos - window.innerHeight/2);
-    
+        svg = d3.select("#chart-container");
+        var ypos;
+        resetTimeline(svg);
+        
+        results.forEach(function(value)
+        {
+          const individual = svg.selectAll(".timelines").select("[id='" + value.ID + "']"); // need add points operation
+          ypos = locateIndividual(individual);
+        });
+        window.scrollTo(0,  ypos - window.innerHeight/2);
+    }
+}
+
+
+function locateIndividual(individual){
+    individual.attr("stroke", HIGHTLIGHT_COLOR).attr("stroke-width", 2);
+    ypos = individual.attr("y")||individual.attr("cy");
+    if(individual.style("visibility") === "hidden")
+        showNotice(0);
+    return ypos;
 }
