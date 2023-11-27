@@ -1,6 +1,5 @@
- 
+   
     #dashboard {
-      border: none; 
       position: fixed;
       top: 0;
       left: 0;
@@ -17,9 +16,10 @@
       top: 0;
       left: 8px;
       width: 20%;
-      height: 48px;
-      background-color: #f8f8f8;
+      height: 50px;
+      background-color: #a6bddb;
       padding: 5px;
+      border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       z-index: 10;
       
@@ -43,16 +43,49 @@
         overflow-y: scroll;
         margin-top: 60px; 
     }
+    #title-container {
+      position: absolute;
+      text-align: center; 
+      background-color: #444444;
+      left: 22%;
+      top: 0;
+      bottom: 0;
+      width: 40.5%;
+      height:100%;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .main-title {
+      font-size: 24px;
+      color: #fff;
+      margin-top: 2px;
+    }
+    .subtitle {
+      font-size: 16px;
+      color: #969696;
+      margin-top: -10px;
+    }
+    .hero-text {
+      color: #ec3636;
+    }
+    .villain-text {
+      color: #FEB24C;
+    }
+    .normal-text {
+      color: #ADD8E6;
+    }
     #filters { 
-      background-color: #f7f3eb;
+      background-color: #d0d1e6;
       position: absolute;
       align-items: center;
-      left: 23%;
+      left: 63%;
       top: 0;
       bottom: 0;
       width: 35%;
       color: black;
       padding: 5px;
+      border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       z-index: 10;
     }

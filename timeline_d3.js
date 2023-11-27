@@ -39,7 +39,6 @@ var GenderFilter = [];
 var HighlightIDs = []; // --- Stores all individual ids that highlighted. Id will be added when individuals are clicked, and removed when BG is clicked
 
 function Timeline(data, familytreeDicts) {
-  console.log("###### Timeline is called", data.length);
 
   AllData = data;
   FamilytreeRoots = familytreeDicts;

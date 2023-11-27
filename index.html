@@ -7,6 +7,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="timeline_d3.js"></script>
     <script src = "notice.js"></script>
+    <script src = "Decorations.js"></script>
     <link rel="stylesheet" href="styles.css">
     
 </head>
@@ -40,11 +41,15 @@
       <label for="male">Male</label>
     </div>
 
-    <div id = "noteContainer">
-      <div class="big-centered-text">This is a visualization for the individuals recorded in 
-        <a href="https://en.wikipedia.org/wiki/Records_of_the_Three_Kingdoms">Sanguozhi (三国志)</a>. 
-        As of the present date, the dataset comprises a total of 1722 entries. The dataset is maintained by <a href="https://wei-weii.github.io/">Wei</a> 
-      </div>
+    <div id = "title-container">
+      
+      <h1 class="main-title">The 
+      <span class="hero-text">Heroes</span>, 
+      <span class="villain-text">Villains</span>
+       and 
+      <span class="normal-text">Beyond</span>
+        </h1>
+        <p class="subtitle">Surface hidden stories from the <b>Records of the Three Kingdoms(三国志)</b></p>
     </div>
   </div>
 
@@ -53,6 +58,8 @@
 
 <div id="chart-container"></div>
 <script>
+
+setTitle();  
     const LIFESPAN_MEAN = 57.2;
     const LIFESPAN_STD = 17.4;
     const LIFESPAN_NUM_UNSURE = 361; // --- the number of individuals has either birth info or death info
