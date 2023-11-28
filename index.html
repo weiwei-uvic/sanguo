@@ -15,8 +15,17 @@
   <!-- Dashboard Section -->
   <div id="dashboard">
     <div id="searchbox">
-      <input type="search" id="searchInput" value = "">
+      <input type="search" id="searchInput" value = ""  onkeydown="OnKeyDown(event)">
       <input type="button" id="searchButton"  value = "Search!" onclick="toggleSearch(this)">  
+    </div>
+    <div id="title-container">
+      <h1 class="main-title">The 
+        <span class="hero-text">Heroes</span>, 
+        <span class="villain-text">Villains</span>
+         and 
+        <span class="normal-text">Beyond</span>
+          </h1>
+          <p class="subtitle">Surface hidden stories from the <b>Records of the Three Kingdoms(三国志)</b></p>
     </div>
     <div id="filters">
       <b class="big-centered-text" >Number of individuals shown now: </b>
@@ -41,16 +50,7 @@
       <label for="male">Male</label>
     </div>
 
-    <div id = "title-container">
-      
-      <h1 class="main-title">The 
-      <span class="hero-text">Heroes</span>, 
-      <span class="villain-text">Villains</span>
-       and 
-      <span class="normal-text">Beyond</span>
-        </h1>
-        <p class="subtitle">Surface hidden stories from the <b>Records of the Three Kingdoms(三国志)</b></p>
-    </div>
+
   </div>
 
 
@@ -58,8 +58,6 @@
 
 <div id="chart-container"></div>
 <script>
-
-setTitle();  
     const LIFESPAN_MEAN = 57.2;
     const LIFESPAN_STD = 17.4;
     const LIFESPAN_NUM_UNSURE = 361; // --- the number of individuals has either birth info or death info
@@ -163,6 +161,12 @@ setTitle();
     {
       searchIndividual(document.getElementById('searchInput').value);
     }
+
+    function OnKeyDown(event) {
+        if (event.key === 'Enter') {
+          toggleSearch();
+        }
+    }
 </script>
 
 </body>
@@ -203,6 +207,9 @@ setTitle();
     1. Add filters to gender √
     2. Add notes to the page  √
 
+
+    27/11
+    1. Fix the bug that family tree might be hidden at the very top or bottom
     Future: 
       1. Cluster people that has close relationship
       2. Provide links to all individuls mentioned in the tooltip
