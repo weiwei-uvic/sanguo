@@ -555,7 +555,8 @@ function updateTimeline(value, filter)
 
 function Familytree(svg, IndividualData, familyRoot, highlightPID, pos)
 {
-    //  root.dy = width / (root.height+1);
+    //  the tree_dx and tree_dy should be dynamic, to avoid overlapping between timeline
+    //  One solution is adjust children's y pos (+barheight of -barheight) if it's the only child or it has the same y pos of its father bar
     const root = d3.tree().nodeSize([TREE_DX, TREE_DY])(familyRoot);
     
     let highlightPx, highlightPy;
